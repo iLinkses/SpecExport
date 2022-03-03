@@ -25,7 +25,7 @@ namespace SpecExport
                 log.Trace("MachineName: {0}", Environment.MachineName);
                 log.Trace("UserName: {0}", Environment.UserName);
                 log.Trace("OS: {0}", Environment.OSVersion.ToString());
-                log.Trace("Command: {0}", Environment.CommandLine.ToString());
+                //log.Trace("Command: {0}", Environment.CommandLine.ToString());
 
                 //NLog.Targets.FileTarget tar = (NLog.Targets.FileTarget)LogManager.Configuration.FindTargetByName("filedata");
                 //tar.DeleteOldFileOnStartup = false;
@@ -35,6 +35,7 @@ namespace SpecExport
             {
                 Console.WriteLine($"Ошибка работы с логом!\n{e.Message}");
             }
+
             Console.ReadLine();
         }
 
@@ -50,6 +51,8 @@ namespace SpecExport
                 FileNames.Add(Path.GetFileName(f));
                 Console.WriteLine(Path.GetFileName(f));
             }
+            if (FileNames.Count > 0) log.Trace($"Список чертежей получен: {FileNames}");
+            else log.Error($"Пустой каталог {DrawingsDirectory}");
         }
     }
 }
