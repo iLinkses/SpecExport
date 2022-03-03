@@ -13,30 +13,23 @@ namespace SpecExport
         public static Logger log;
         static void Main(string[] args)
         {
-            StartLogging();
-        }
-
-        static void StartLogging()
-        {
             try
             {
                 log = LogManager.GetCurrentClassLogger();
-
-                log.Trace("MachineName: {0}", Environment.MachineName);
-                log.Trace("UserName: {0}", Environment.UserName);
-                log.Trace("OS: {0}", Environment.OSVersion.ToString());
-                //log.Trace("Command: {0}", Environment.CommandLine.ToString());
-
-                //NLog.Targets.FileTarget tar = (NLog.Targets.FileTarget)LogManager.Configuration.FindTargetByName("filedata");
-                //tar.DeleteOldFileOnStartup = false;
+                log.Trace($"---!!!---Start NLog---!!!---\n" +
+                    $"\tMachineName:{Environment.MachineName}\n" +
+                    $"\tUserName:{Environment.UserName}\n" +
+                    $"\tOS:{Environment.OSVersion.VersionString}");
+                
                 GetFileInCatalog();
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Ошибка работы с логом!\n{e.Message}");
-            }
 
-            Console.ReadLine();
+                log.Trace("---!!!---End NLog---!!!---");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка работы с логом!\n{ex.Message}");
+                Console.ReadLine();
+            }
         }
 
         static List<string> FileNames { get; set; } = new List<string>();
