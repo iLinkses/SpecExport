@@ -10,6 +10,7 @@ namespace SpecExport
 {
     class Program
     {
+        ///<seealso cref="https://nlog-project.org/config/?tab=layout-renderers"/>
         public static Logger log;
         static void Main(string[] args)
         {
@@ -20,7 +21,7 @@ namespace SpecExport
                     $"\tMachineName:{Environment.MachineName}\n" +
                     $"\tUserName:{Environment.UserName}\n" +
                     $"\tOS:{Environment.OSVersion.VersionString}");
-                
+
                 GetFileInCatalog();
 
                 log.Trace("---!!!---End NLog---!!!---");
