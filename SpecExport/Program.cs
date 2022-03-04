@@ -24,6 +24,12 @@ namespace SpecExport
 
                 GetFileInCatalog();
 
+                if (Properties.Settings.Default.SendMail)
+                {
+                    Classes.SMTP smtp = new Classes.SMTP();
+                    smtp.SendMail();
+                }
+
                 log.Trace("---!!!---End NLog---!!!---");
             }
             catch (Exception ex)
@@ -48,5 +54,6 @@ namespace SpecExport
             if (FileNames.Count > 0) log.Trace($"Список чертежей получен: {FileNames}");
             else log.Error($"Пустой каталог {DrawingsDirectory}");
         }
+
     }
 }
