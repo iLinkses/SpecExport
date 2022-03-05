@@ -45,7 +45,7 @@ namespace SpecExport
         /// </summary>
         private static void GetFileInCatalog()
         {
-            string DrawingsDirectory = "Drawings";
+            string DrawingsDirectory = Properties.Settings.Default.DrawingsDirectory;
             foreach (var f in Directory.GetFiles(DrawingsDirectory, "*.dwg"))
             {
                 FileNames.Add(Path.GetFileName(f));
@@ -54,6 +54,5 @@ namespace SpecExport
             if (FileNames.Count > 0) log.Trace($"Список чертежей получен: {FileNames}");
             else log.Error($"Пустой каталог {DrawingsDirectory}");
         }
-
     }
 }

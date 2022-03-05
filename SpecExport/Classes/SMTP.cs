@@ -47,7 +47,11 @@ namespace SpecExport.Classes
                 // логин и пароль
                 smtp.Credentials = new System.Net.NetworkCredential(FromMailAddres, GetPassword());
                 smtp.EnableSsl = true;
+                Program.log.Trace($"Отправляем отчет по почте:\n" +
+                    $"\tОтправитель {mm.From}\n" +
+                    $"\tПолучатель{mm.To}");
                 smtp.Send(mm);
+                Program.log.Trace("Письмо с отчетом отправлено");
             }
             catch (SmtpException ex)
             {
