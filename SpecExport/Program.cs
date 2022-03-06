@@ -5,13 +5,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using NLog;
+using SpecExport.Classes;
 
 namespace SpecExport
 {
     class Program
     {
         ///<seealso cref="https://nlog-project.org/config/?tab=layout-renderers"/>
-        public static Logger log;
+        public static Logger log { get; set; }
         static void Main(string[] args)
         {
             try
@@ -21,8 +22,8 @@ namespace SpecExport
                     $"\tMachineName:{Environment.MachineName}\n" +
                     $"\tUserName:{Environment.UserName}\n" +
                     $"\tOS:{Environment.OSVersion.VersionString}");
-
-                GetFileInCatalog();
+                Kompas kompas = new Kompas();
+                kompas.ExportSpec();
 
                 if (Properties.Settings.Default.SendMail)
                 {
@@ -37,22 +38,6 @@ namespace SpecExport
                 Console.WriteLine($"Ошибка работы с логом!\n{ex.Message}");
                 Console.ReadLine();
             }
-        }
-
-        static List<string> FileNames { get; set; } = new List<string>();
-        /// <summary>
-        /// Получает названия файлов с чертежами в каталоге
-        /// </summary>
-        private static void GetFileInCatalog()
-        {
-            string DrawingsDirectory = Properties.Settings.Default.DrawingsDirectory;
-            foreach (var f in Directory.GetFiles(DrawingsDirectory, "*.dwg"))
-            {
-                FileNames.Add(Path.GetFileName(f));
-                Console.WriteLine(Path.GetFileName(f));
-            }
-            if (FileNames.Count > 0) log.Trace($"Список чертежей получен: {FileNames}");
-            else log.Error($"Пустой каталог {DrawingsDirectory}");
         }
     }
 }
