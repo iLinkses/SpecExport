@@ -14,6 +14,10 @@ namespace SpecExport
     {
         ///<seealso cref="https://nlog-project.org/config/?tab=layout-renderers"/>
         public static Logger log { get; set; }
+        /// <summary>
+        /// Признак отображения таблиц в консоли
+        /// </summary>
+        private static bool ShowConsoleTable { get; set; } = false;
         static void Main(string[] args)
         {
             try
@@ -66,14 +70,17 @@ namespace SpecExport
         }
         public static void WConsoleTable(string[] Columns, List<object[]> Rows)
         {
-            var ctbl = new ConsoleTable();
-            ctbl.AddColumn(Columns);
-            foreach (var row in Rows)
+            if (ShowConsoleTable)
             {
-                ctbl.AddRow(row);
+                var ctbl = new ConsoleTable();
+                ctbl.AddColumn(Columns);
+                foreach (var row in Rows)
+                {
+                    ctbl.AddRow(row);
+                }
+                ctbl.Options.EnableCount = false;
+                ctbl.Write();
             }
-            ctbl.Options.EnableCount = false;
-            ctbl.Write();
         }
         private static void GetTestData()
         {
