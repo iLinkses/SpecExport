@@ -66,6 +66,7 @@ namespace SpecExport.Classes
                     foreach (var ws in ep.Workbook.Worksheets)
                     {
                         //Console.WriteLine(ws.Name);
+                        Program.WConsoleTable(new string[] { ws.Name }, new List<object[]> { });
                         foreach (var spec in Specs)
                         {
                             AddSubsection(ws, spec);
@@ -116,7 +117,7 @@ namespace SpecExport.Classes
         private void AddSubsection(ExcelWorksheet ws, Spec spec)
         {
             int row = 2, col = 1;
-            foreach(var ssn in spec.Positions.Where(p => p.Section == ws.Name).Select(n => Regex.Match(n.Name, @"[а-яА-Я]+").Value).Distinct())
+            foreach (var ssn in spec.Positions.Where(p => p.Section == ws.Name).Select(n => Regex.Match(n.Name, @"[а-яА-Я]+").Value).Distinct())
             {
                 ws.Cells[row, col].Value = ssn;
                 row += 2;
