@@ -4,13 +4,16 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using NLog;
 using OfficeOpenXml;
 using OfficeOpenXml.Style;
+using System.Text.RegularExpressions;
 
 namespace SpecExport.Classes
 {
     class ExcelExport
     {
+        private readonly NLog.Logger log = Program.log;
         private List<Spec> Specs { get; set; } = new List<Spec>();
         private string DrawingsDirectory { get { return Properties.Settings.Default.DrawingsDirectory; } }
         private readonly string NameDoc = $"Отчет за {DateTime.Now.ToShortDateString().Replace(".", "_")}.xlsx";
@@ -19,131 +22,181 @@ namespace SpecExport.Classes
         public ExcelExport(List<Spec> spec_)
         {
             this.Specs = spec_;
-
+            log = LogManager.GetCurrentClassLogger();
         }
         public void SaveExcel()
         {
-            if (!ExistsDrawingsDirectory())
+            try
             {
-                Directory.CreateDirectory(DrawingsDirectory);
-            }
-
-            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-            if (!ExistsFile())
-            {
-                //создаем новый файл
-                using (ExcelPackage ep = new ExcelPackage())
+                if (!ExistsDrawingsDirectory())
                 {
-                    foreach (var spec in Specs)
+                    Directory.CreateDirectory(DrawingsDirectory);
+                }
+
+                ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+                if (!ExistsFile())
+                {
+                    //создаем новый файл
+                    using (ExcelPackage ep = new ExcelPackage())
                     {
-                        foreach (var sec in spec.Positions.Select(p => p.Section).Distinct())
+                        foreach (var spec in Specs)
                         {
-                            if (ep.Workbook.Worksheets.Select(ws_ => ws_.Name).ToList().Find(n => n == sec) == null)
+                            foreach (var sec in spec.Positions.Select(p => p.Section).Distinct())
                             {
-                                ExcelWorksheet ws = ep.Workbook.Worksheets.Add(sec);
-                                ///Названия товаров
-                                foreach (var detail in spec.Positions.Where(p => p.Section.Equals(sec)))
+                                if (ep.Workbook.Worksheets.Select(ws_ => ws_.Name).ToList().Find(n => n == sec) == null)
                                 {
-                                    ws.Cells[1, 1].Value = "№";
-                                    ws.Cells[1, 2].Value = "Название";
-                                    ws.Cells[1, 3].Value = "Общее кол-во";
+                                    ExcelWorksheet ws = ep.Workbook.Worksheets.Add(sec);
+                                    ///Названия товаров
+                                    foreach (var detail in spec.Positions.Where(p => p.Section.Equals(sec)))
+                                    {
+                                        ws.Cells[1, 1].Value = "№";
+                                        ws.Cells[1, 2].Value = "Название";
+                                        ws.Cells[1, 3].Value = "Общее кол-во";
+                                    }
                                 }
                             }
                         }
+                        ep.SaveAs($@"{DrawingsDirectory}\{NameDoc}");
+                        Console.WriteLine($"Создан новый пустой файл {NameDoc}");
+                        log.Trace($"Создан новый пустой файл {NameDoc}");
                     }
-                    ep.SaveAs($@"{DrawingsDirectory}\{NameDoc}");
-                    Console.WriteLine($"Новый файл {NameDoc} сгенерирован!");
+                }
+                using (ExcelPackage ep = new ExcelPackage(new FileInfo($@"{DrawingsDirectory}\{NameDoc}")))
+                {
+                    foreach (var ws in ep.Workbook.Worksheets)
+                    {
+                        //Console.WriteLine(ws.Name);
+                        foreach (var spec in Specs)
+                        {
+                            AddSubsection(ws, spec);
+                            //AddCells(ws, spec);
+
+                            //foreach (var test in ws.Cells[ws.Dimension.FullAddress])
+                            //{
+                            //    Console.WriteLine(test.Value);
+                            //}
+                        }
+                        //var i = $"C2:C{ws.Dimension.End.Row}";
+                        for (int row = 2; row <= ws.Dimension.End.Row; row++)
+                        {
+                            //Добавляем формулу для расчета общей суммы
+                            ws.Cells[row, 3].Formula = $"=SUM(D{row}:{ExcelCellAddress.GetColumnLetter(ws.Dimension.End.Column)}{row})";
+                        }
+
+                        string[] columns = new string[ws.Dimension.End.Column];
+                        for (int col = 1; col <= ws.Dimension.End.Column; col++)
+                        {
+                            columns[col - 1] = ws.Cells[1, col].Value.ToString();
+                        }
+                        List<object[]> crs = new List<object[]>();
+                        for (int row = 2; row <= ws.Dimension.End.Row; row++)
+                        {
+                            object[] cr = new object[ws.Dimension.End.Column];
+                            for (int col = 1; col <= ws.Dimension.End.Column; col++)
+                            {
+                                cr[col - 1] = ws.Cells[row, col].Value;
+                            }
+                            crs.Add(cr);
+                        }
+                        Program.WConsoleTable(columns, crs);
+
+                        ws.Cells.AutoFitColumns();
+                    }
+                    ep.Save();
+                    Console.WriteLine($"{NameDoc} сгенерирован!");
                 }
             }
-            using (ExcelPackage ep = new ExcelPackage(new FileInfo($@"{DrawingsDirectory}\{NameDoc}")))
+            catch (Exception ex)
             {
-                foreach (var ws in ep.Workbook.Worksheets)
-                {
-                    Console.WriteLine(ws.Name);
-                    foreach (var spec in Specs)
-                    {
-                        AddCells(ws, spec);
-                        foreach (var test in ws.Cells[ws.Dimension.FullAddress])
-                        {
-                            Console.WriteLine(test.Value);
-                        }
-                    }
-                    var i = $"C2:C{ws.Dimension.End.Row}";
-                    for (int row = 2; row <= ws.Dimension.End.Row; row++)
-                    {
-                        //Добавляем формулу для расчета общей суммы
-                        ws.Cells[row, 3].Formula = $"=SUM(D{row}:{ExcelCellAddress.GetColumnLetter(ws.Dimension.End.Column)}{row})";
-                    }
-                    
-                    ws.Cells.AutoFitColumns();
-                }
-                ep.Save();
-                Console.WriteLine($"{NameDoc} сгенерирован!");
+                log.Error(ex, ex.Message);
+                Console.WriteLine("Возникла ошибка. Подробности см. в логе");
             }
         }
+
+        private void AddSubsection(ExcelWorksheet ws, Spec spec)
+        {
+            int row = 2, col = 1;
+            foreach(var ssn in spec.Positions.Where(p => p.Section == ws.Name).Select(n => Regex.Match(n.Name, @"[а-яА-Я]+").Value).Distinct())
+            {
+                ws.Cells[row, col].Value = ssn;
+                row += 2;
+            }
+            //TODO Создать метод возвращающий первую и последнюю строку в подразделе
+            //TODO Объединить 4 колонки в одну для названия подраздела
+            //TODO както распределять позиции по подразделам (тоже метод написать)
+        }
+
         private void AddCells(ExcelWorksheet ws, Spec spec)
         {
             int row = 2;
             int col = 4;
-            //Проверка на наличие добавленных чертежей
-            if (ws.Cells["D1"].Value == null)
+            try
             {
-                ws.SetValue("D1", spec.DrawingNumber);
-            }
-            else
-            {
-                var test = GetLastNotNullCol(ws) + 1;
-                var test1 = ws.Cells[1, GetLastNotNullCol(ws) + 1].Value;
-                ws.Cells[1, GetLastNotNullCol(ws) + 1].Value = spec.DrawingNumber;//Добавляем в столбец номер очередного чертежа
-            }
-
-            foreach (var p in spec.Positions.Where(p => p.Section == ws.Name))
-            {
-                //Проверка на наличие записей впринципе
-                if (ws.Cells["B2"].Value == null)
+                //Проверка на наличие добавленных чертежей
+                if (ws.Cells["D1"].Value == null)
                 {
-                    //Не нашли записей, добавляем все подряд
-                    ws.Cells[row, 2].Value = p.Name;//Добавляем название
-                    ws.Cells[row, col].Value = p.Quantity;//Добавляем количество
-                    row++;
+                    ws.SetValue("D1", spec.DrawingNumber);
                 }
                 else
                 {
-                    string existRow = ExistName(ws.Cells[$"B2:B{ws.Dimension.End.Row}"], p.Name);
-                    //Делаем поиск на существующее название
-                    if (string.IsNullOrEmpty(existRow))
+                    var test = GetLastNotNullCol(ws) + 1;
+                    var test1 = ws.Cells[1, GetLastNotNullCol(ws) + 1].Value;
+                    ws.Cells[1, GetLastNotNullCol(ws) + 1].Value = spec.DrawingNumber;//Добавляем в столбец номер очередного чертежа
+                }
+
+                foreach (var p in spec.Positions.Where(p => p.Section == ws.Name))
+                {
+                    //Проверка на наличие записей впринципе
+                    if (ws.Cells["B2"].Value == null)
                     {
-                        //Не нашли одинакового, добавляем в конец
-                        row = GetLastNotNullRow(ws) + 1;
-                        ws.SetValue(row, 2, p.Name);
-                        string existCol = ExistName(ws.Cells[$"D1:{ExcelCellAddress.GetColumnLetter(ws.Dimension.End.Column)}1"], spec.DrawingNumber.ToString());
-                        if (string.IsNullOrEmpty(existCol))
-                        {
-                            //Не нашли такой номер добавляем в конец
-                            ws.SetValue(row, GetLastNotNullCol(ws) + 1, p.Quantity);
-                        }
-                        else
-                        {
-                            //Нашли такой же номер
-                            ws.SetValue(new string(existCol.ToCharArray().Where(n => !char.IsDigit(n)).ToArray()) + row, p.Quantity);
-                        }
+                        //Не нашли записей, добавляем все подряд
+                        ws.Cells[row, 2].Value = p.Name;//Добавляем название
+                        ws.Cells[row, col].Value = p.Quantity;//Добавляем количество
+                        row++;
                     }
                     else
                     {
-                        //Нашли такое же
-                        string existCol = ExistName(ws.Cells[$"D1:{ExcelCellAddress.GetColumnLetter(ws.Dimension.End.Column)}1"], spec.DrawingNumber.ToString());
-                        if (string.IsNullOrEmpty(existCol))
+                        string existRow = ExistName(ws.Cells[$"B2:B{ws.Dimension.End.Row}"], p.Name);
+                        //Делаем поиск на существующее название
+                        if (string.IsNullOrEmpty(existRow))
                         {
-                            //Не нашли такой номер добавляем в конец
-                            ws.SetValue(Convert.ToInt32(new string(existRow.ToCharArray().Where(n => char.IsDigit(n)).ToArray())), GetLastNotNullCol(ws) + 1, p.Quantity);
+                            //Не нашли одинакового, добавляем в конец
+                            row = GetLastNotNullRow(ws) + 1;
+                            ws.SetValue(row, 2, p.Name);
+                            string existCol = ExistName(ws.Cells[$"D1:{ExcelCellAddress.GetColumnLetter(ws.Dimension.End.Column)}1"], spec.DrawingNumber.ToString());
+                            if (string.IsNullOrEmpty(existCol))
+                            {
+                                //Не нашли такой номер добавляем в конец
+                                ws.SetValue(row, GetLastNotNullCol(ws) + 1, p.Quantity);
+                            }
+                            else
+                            {
+                                //Нашли такой же номер
+                                ws.SetValue(new string(existCol.ToCharArray().Where(n => !char.IsDigit(n)).ToArray()) + row, p.Quantity);
+                            }
                         }
                         else
                         {
-                            //Нашли такой же номер
-                            ws.SetValue(new string(existCol.ToCharArray().Where(n => !char.IsDigit(n)).ToArray()) + new string(existRow.ToCharArray().Where(n => char.IsDigit(n)).ToArray()), p.Quantity);
+                            //Нашли такое же
+                            string existCol = ExistName(ws.Cells[$"D1:{ExcelCellAddress.GetColumnLetter(ws.Dimension.End.Column)}1"], spec.DrawingNumber.ToString());
+                            if (string.IsNullOrEmpty(existCol))
+                            {
+                                //Не нашли такой номер добавляем в конец
+                                ws.SetValue(Convert.ToInt32(new string(existRow.ToCharArray().Where(n => char.IsDigit(n)).ToArray())), GetLastNotNullCol(ws) + 1, p.Quantity);
+                            }
+                            else
+                            {
+                                //Нашли такой же номер
+                                ws.SetValue(new string(existCol.ToCharArray().Where(n => !char.IsDigit(n)).ToArray()) + new string(existRow.ToCharArray().Where(n => char.IsDigit(n)).ToArray()), p.Quantity);
+                            }
                         }
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex, ex.Message);
+                Console.WriteLine("Возникла ошибка. Подробности см. в логе");
             }
         }
         /// <summary>

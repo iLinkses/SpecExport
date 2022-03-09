@@ -50,7 +50,7 @@ namespace SpecExport.Classes
             public string Position { get; set; }
             public string Designation { get; set; }
             public string Name { get; set; }
-            public int Quantity { get; set; }
+            public decimal Quantity { get; set; }
             public string Note { get; set; }
         }
     }

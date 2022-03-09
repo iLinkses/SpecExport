@@ -6,12 +6,14 @@ using Kompas6Constants;
 using System.Data;
 using System.Runtime.InteropServices;
 using System.IO;
+using System.Text.RegularExpressions;
+using NLog;
 
 namespace SpecExport.Classes
 {
     class Kompas
     {
-        private readonly NLog.Logger log = Program.log;
+        private NLog.Logger log = Program.log;
         private string DrawingsDirectory { get { return Properties.Settings.Default.DrawingsDirectory; } }
         private KompasObject kompas { get; set; } = null;
         private ksDocument2D doc2D { get; set; } = null;
@@ -19,13 +21,22 @@ namespace SpecExport.Classes
         private List<Spec> Specs { get; set; } = new List<Spec>();
         private Spec Spec { get; set; }
         private string FullFileName { get; set; }
-
+        private Dictionary<int, string> SpecialCharacters = new Dictionary<int, string>()
+        {
+            { 1, "\u1231" },
+            { 2, "" }
+        };
+        public Kompas()
+        {
+            log = LogManager.GetCurrentClassLogger();
+        }
         public void ExportSpec()
         {
             List<string> FileNames = GetFileInCatalog();
             if (FileNames.Count > 0)
             {
                 LoadKompas();
+                log.Trace("Проходимся по чертежам");
                 foreach (var fn in FileNames)
                 {
                     this.FullFileName = $@"{Directory.GetCurrentDirectory()}\{DrawingsDirectory}\{fn}";
@@ -42,6 +53,7 @@ namespace SpecExport.Classes
                 CloseKompas();
                 if (Specs.Count > 0)
                 {
+                    log.Trace("Генерируем отчет");
                     ExcelExport excelExport = new ExcelExport(Specs);
                     excelExport.SaveExcel();
                 }
@@ -60,9 +72,17 @@ namespace SpecExport.Classes
             foreach (var f in Directory.GetFiles($@"{Directory.GetCurrentDirectory()}\{DrawingsDirectory}", "*.cdw"))
             {
                 FileNames.Add(Path.GetFileName(f));
-                Console.WriteLine(Path.GetFileName(f));
+                //Console.WriteLine(Path.GetFileName(f));
             }
-            if (FileNames.Count > 0) log.Trace($"Список чертежей получен: {FileNames}");
+
+            List<object[]> cr = new List<object[]>();
+            foreach (var fn_ in FileNames) cr.Add(new object[] { fn_ });
+            Program.WConsoleTable(new string[] { "Название чертежа" }, cr);
+
+            string fn = string.Empty;
+            FileNames.ForEach(new Action<string>(name => fn += "\n\t" + name));
+
+            if (FileNames.Count > 0) log.Trace($"Список чертежей получен: {fn}");
             else log.Error($"Пустой каталог {DrawingsDirectory}");
             return FileNames;
         }
@@ -76,6 +96,8 @@ namespace SpecExport.Classes
                 Type t = Type.GetTypeFromProgID("KOMPAS.Application.5");
 #endif
                 kompas = (KompasObject)Activator.CreateInstance(t);
+
+                log.Trace($"Открыли компас");
             }
 
             if (kompas != null)
@@ -91,6 +113,7 @@ namespace SpecExport.Classes
             {
                 kompas.Quit();
                 Marshal.ReleaseComObject(kompas);
+                log.Trace($"Закрыли компас");
             }
         }
         private void OpenFile()
@@ -103,7 +126,14 @@ namespace SpecExport.Classes
                 case (int)DocType.lt_DocFragment:
                     doc2D = (ksDocument2D)kompas.Document2D();
                     if (doc2D != null)
+                    {
                         doc2D.ksOpenDocument(FullFileName, false);
+                        log.Trace($"Открыли чертеж {FullFileName}");
+                    }
+                    else
+                    {
+                        log.Error("Не удалось открыть чертеж");
+                    }
                     break;
             }
         }
@@ -112,6 +142,7 @@ namespace SpecExport.Classes
             if (doc2D != null)
             {
                 var t = doc2D.ksCloseDocument();
+                log.Trace($"Закрыли чертеж {FullFileName}");
             }
         }
         private void GetSpec(ksSpecification specification)
@@ -178,24 +209,56 @@ namespace SpecExport.Classes
                         var Detail = new Spec.Detail();
                         if (ls.Count > 0)
                         {
-                            Detail.Section = specification.ksGetSpcSectionName(obj);
-                            Detail.Format = ls[0];
-                            Detail.Zone = ls[1];
-                            Detail.Position = ls[2];
-                            Detail.Designation = ls[3];
-                            Detail.Name = ls[4];
-                            Detail.Quantity = Convert.ToInt32(ls[5]);
-                            Detail.Note = ls[6];
+                            ///Отбрасываем "информационные" позиции без количества и примечания
+                            if(!string.IsNullOrEmpty(ls[5]) || !string.IsNullOrEmpty(ls[6]))
+                            {
+                                Detail.Section = specification.ksGetSpcSectionName(obj);
+                                Detail.Format = ls[0];
+                                Detail.Zone = ls[1];
+                                Detail.Position = ls[2];
+                                Detail.Designation = ls[3];
+                                Detail.Name = ReplaseKompasSymbols(ls[4]);//ls[4];
+                                Detail.Quantity = !string.IsNullOrEmpty(ls[5]) ? Convert.ToDecimal(ls[5]) : Convert.ToDecimal(Regex.Match(ls[6], @"\d+[.,]?\d*").Value);///вытаскиваем количество из примечания если столбец количество пустой
+                                Detail.Note = ls[6];
+                            }
                         }
                         Spec.Positions.Add(Detail);
                     }
                     while ((obj = iter.ksMoveIterator("N")) != 0);
                     Specs.Add(Spec);
+
+                    log.Trace($"Получили спецификацию по чертежу {FullFileName}");
                 }
             }
             //}
             //else
             //    kompas.ksError("Спецификация должна быть текущей");
+        }
+
+        /// <summary>
+        /// Заменяет вставки спецсимволов компаса на юникод/ascii
+        /// </summary>
+        /// <param name="text"></param>
+        /// <returns></returns>
+        /// TODO сначала заполнить словарь <see cref="SpecialCharacters"/>
+        private string ReplaseKompasSymbols(string text)
+        {
+            string newtext = text;
+            //TODO там могут быть другие конструкции, которые тоже стоит по идее учитывать
+            var matches = new Regex(@"(?<insert>@(?<Modifier>\*|\+)?(?<CharacterCode>\w*?)~)").Matches(text);
+            if (matches.Count > 0)
+            {
+                foreach (Match match in matches)
+                {
+                    newtext = text.Replace(match.Groups["insert"].Value, SpecialCharacters[Convert.ToInt32(match.Groups["CharacterCode"].Value)]);//TODO посмотреть в документации "Таблица спецзнаков находится в приложении V основной справки КОМПАСа"
+                    //Console.WriteLine(match.Value);
+                }
+            }
+            //else
+            //{
+            //    Console.WriteLine("Совпадений не найдено");
+            //}
+            return newtext;
         }
 
         [Obsolete("Всякий мусор")]
