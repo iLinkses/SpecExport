@@ -23,8 +23,7 @@ namespace SpecExport.Classes
         private string FullFileName { get; set; }
         private Dictionary<int, string> SpecialCharacters = new Dictionary<int, string>()
         {
-            { 1, "\u1231" },
-            { 2, "" }
+            { 4, "\u00D8" }//Ø
         };
         public Kompas()
         {
