@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using NLog;
 using SpecExport.Classes;
 using ConsoleTables;
+using SpecExport.Properties;
 
 namespace SpecExport
 {
@@ -17,7 +18,6 @@ namespace SpecExport
         /// <summary>
         /// Признак отображения таблиц в консоли
         /// </summary>
-        private static bool ShowConsoleTable { get; set; } = false;
         static void Main(string[] args)
         {
             try
@@ -70,7 +70,7 @@ namespace SpecExport
         }
         public static void WConsoleTable(string[] Columns, List<object[]> Rows)
         {
-            if (ShowConsoleTable)
+            if (Settings.Default.ShowConsoleTable)
             {
                 var ctbl = new ConsoleTable();
                 ctbl.AddColumn(Columns);
@@ -128,14 +128,64 @@ namespace SpecExport
                 Quantity = 2,
                 Section = "Лист2"
             });
+            //---
+            Spec spec1 = new Spec();
+            spec1.Positions.Add(new Spec.Detail
+            {
+                Designation = "Болт 1",
+                Name = "Болт 1",
+                Quantity = 1,
+                Section = "Лист1"
+            });
+            spec1.Positions.Add(new Spec.Detail
+            {
+                Designation = "Болт 3",
+                Name = "Болт 3",
+                Quantity = 2,
+                Section = "Лист1"
+            });
+            spec1.Positions.Add(new Spec.Detail
+            {
+                Designation = "Шайба 2",
+                Name = "Шайба 1",
+                Quantity = 2,
+                Section = "Лист1"
+            });
+            spec1.Positions.Add(new Spec.Detail
+            {
+                Designation = "Гайка 2",
+                Name = "Гайка 1",
+                Quantity = 1,
+                Section = "Лист1"
+            });
+
+            spec1.Positions.Add(new Spec.Detail
+            {
+                Designation = "Гайка 1",
+                Name = "Гайка 1",
+                Quantity = 1,
+                Section = "Лист2"
+            });
+            spec1.Positions.Add(new Spec.Detail
+            {
+                Designation = "Гайка 3",
+                Name = "Гайка 2",
+                Quantity = 2,
+                Section = "Лист2"
+            });
             List<Spec> Specs = new List<Spec>();
             Specs.Add(new Spec
             {
                 FileName = "1_",
                 Positions = spec.Positions
             });
+            Specs.Add(new Spec
+            {
+                FileName = "2_",
+                Positions = spec1.Positions
+            });
             ExcelExport excelExport = new ExcelExport(Specs);
-            excelExport.SaveExcel();
+            excelExport.NewSaveExcel();
         }
     }
 }

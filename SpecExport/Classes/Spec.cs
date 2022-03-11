@@ -29,22 +29,29 @@ namespace SpecExport.Classes
         /// Возвращает номер чертежа из названия чертежа
         /// </summary>
         /// <example>"30_НазваниеКакоготоЧертежа" вернет 30</example>
-        public string DrawingNumber
+        public int? DrawingNumber
         {
             get
             {
                 if (!string.IsNullOrEmpty(FileName))
                 {
-                    return FileName.Remove(FileName.IndexOf("_"));
+                    return Convert.ToInt32(FileName.Remove(FileName.IndexOf("_")));
                 }
-                else return string.Empty;
+                else return null;
             }
         }
 
         public List<Detail> Positions { get; set; } = new List<Detail>();
         public class Detail
         {
+            /// <summary>
+            /// Для разделения на листы(книги)
+            /// </summary>
             public string Section { get; set; }
+            /// <summary>
+            /// Для разделения на подразделы на листе
+            /// </summary>
+            public virtual string Subsection { get { return System.Text.RegularExpressions.Regex.Match(Name, @"[а-яА-Я]+").Value; } set { } }
             public string Format { get; set; }
             public string Zone { get; set; }
             public string Position { get; set; }
@@ -52,6 +59,17 @@ namespace SpecExport.Classes
             public string Name { get; set; }
             public decimal Quantity { get; set; }
             public string Note { get; set; }
+        }
+    }
+    public class ExcelSpec
+    {
+        public List<ExcelDetail> Details { get; set; } = new List<ExcelDetail>();
+        public class ExcelDetail : Spec.Detail
+        {
+            public string FileName { get; set; }
+            public int? DrawingNumber { get; set; }
+            private string subsection;
+            public override string Subsection { get => base.Subsection; set => subsection = value; }
         }
     }
 }

@@ -85,5 +85,14 @@ namespace SpecExport.Properties {
                 return ((bool)(this["SendMail"]));
             }
         }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool ShowConsoleTable {
+            get {
+                return ((bool)(this["ShowConsoleTable"]));
+            }
+        }
     }
 }

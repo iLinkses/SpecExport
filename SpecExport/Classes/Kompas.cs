@@ -55,7 +55,7 @@ namespace SpecExport.Classes
                 {
                     log.Trace("Генерируем отчет");
                     ExcelExport excelExport = new ExcelExport(Specs);
-                    excelExport.SaveExcel();
+                    excelExport.NewSaveExcel();
                 }
             }
         }
