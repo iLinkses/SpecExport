@@ -49,9 +49,9 @@ namespace SpecExport
                         } }
                     );
 
-                //Kompas kompas = new Kompas();
-                //kompas.ExportSpec();
-                GetTestData();
+                Kompas kompas = new Kompas();
+                kompas.ExportSpec();
+                ///GetTestData();
 
                 if (Properties.Settings.Default.SendMail)
                 {

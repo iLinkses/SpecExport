@@ -23,7 +23,7 @@ namespace SpecExport.Classes
         private string FullFileName { get; set; }
         private Dictionary<int, string> SpecialCharacters = new Dictionary<int, string>()
         {
-            { 4, "\u00D8" }//Ø
+            { 2, "\u00D8" }//Ø
         };
         public Kompas()
         {
@@ -209,7 +209,7 @@ namespace SpecExport.Classes
                         if (ls.Count > 0)
                         {
                             ///Отбрасываем "информационные" позиции без количества и примечания
-                            if(!string.IsNullOrEmpty(ls[5]) || !string.IsNullOrEmpty(ls[6]))
+                            if (!string.IsNullOrEmpty(ls[5]) || !string.IsNullOrEmpty(ls[6]))
                             {
                                 Detail.Section = specification.ksGetSpcSectionName(obj);
                                 Detail.Format = ls[0];
@@ -243,20 +243,27 @@ namespace SpecExport.Classes
         private string ReplaseKompasSymbols(string text)
         {
             string newtext = text;
-            //TODO там могут быть другие конструкции, которые тоже стоит по идее учитывать
-            var matches = new Regex(@"(?<insert>@(?<Modifier>\*|\+)?(?<CharacterCode>\w*?)~)").Matches(text);
-            if (matches.Count > 0)
+            try
             {
-                foreach (Match match in matches)
+                //TODO там могут быть другие конструкции, которые тоже стоит по идее учитывать
+                var matches = new Regex(@"(?<insert>@(?<Modifier>\*|\+)?(?<CharacterCode>\w*?)~)").Matches(text);
+                if (matches.Count > 0)
                 {
-                    newtext = text.Replace(match.Groups["insert"].Value, SpecialCharacters[Convert.ToInt32(match.Groups["CharacterCode"].Value)]);//TODO посмотреть в документации "Таблица спецзнаков находится в приложении V основной справки КОМПАСа"
-                    //Console.WriteLine(match.Value);
+                    foreach (Match match in matches)
+                    {
+                        newtext = text.Replace(match.Groups["insert"].Value, SpecialCharacters[Convert.ToInt32(match.Groups["CharacterCode"].Value)]);//TODO посмотреть в документации "Таблица спецзнаков находится в приложении V основной справки КОМПАСа"
+                                                                                                                                                      //Console.WriteLine(match.Value);
+                    }
                 }
+                //else
+                //{
+                //    Console.WriteLine("Совпадений не найдено");
+                //}
             }
-            //else
-            //{
-            //    Console.WriteLine("Совпадений не найдено");
-            //}
+            catch (Exception ex)
+            {
+                log.Error(ex, $"{ex.Message}\n\t{text}");
+            }
             return newtext;
         }
 
