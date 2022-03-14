@@ -47,7 +47,7 @@ namespace SpecExport
 
                 Kompas kompas = new Kompas();
                 kompas.ExportSpec();
-                ///GetTestData();
+                //GetTestData();
 
                 if (Settings.Default.SendMail)
                 {

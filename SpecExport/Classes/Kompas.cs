@@ -87,7 +87,7 @@ namespace SpecExport.Classes
         private List<string> GetFileInCatalog()
         {
             List<string> FileNames = new List<string>();
-            if (Directory.Exists($@"{Directory.GetCurrentDirectory()}\{DrawingsDirectory}"))
+            if (!Directory.Exists($@"{Directory.GetCurrentDirectory()}\{DrawingsDirectory}"))
             {
                 Console.WriteLine($"Не найдет каталог {DrawingsDirectory} проверьте имя каталога в конфиге");
                 log.Error($"Не найдет каталог {DrawingsDirectory}");
