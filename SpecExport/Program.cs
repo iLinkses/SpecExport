@@ -1,9 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using NLog;
 using SpecExport.Classes;
 using ConsoleTables;
@@ -53,9 +49,9 @@ namespace SpecExport
                 kompas.ExportSpec();
                 ///GetTestData();
 
-                if (Properties.Settings.Default.SendMail)
+                if (Settings.Default.SendMail)
                 {
-                    Classes.SMTP smtp = new Classes.SMTP();
+                    SMTP smtp = new SMTP();
                     smtp.SendMail();
                 }
 

@@ -21,13 +21,36 @@ namespace SpecExport.Classes
         private List<Spec> Specs { get; set; } = new List<Spec>();
         private Spec Spec { get; set; }
         private string FullFileName { get; set; }
-        private Dictionary<int, string> SpecialCharacters = new Dictionary<int, string>()
-        {
-            { 2, "\u00D8" }//Ø
-        };
+        private readonly Dictionary<int, string> SpecialCharacters;
+        //{
+        //    { 2, "\u00D8" }//Ø
+        //};
         public Kompas()
         {
             log = LogManager.GetCurrentClassLogger();
+            SpecialCharacters = FillDictionary();//Заполняем словарь символов
+        }
+        private Dictionary<int,string> FillDictionary()
+        {
+            Dictionary<int, string> Dict = new Dictionary<int, string>();
+            try
+            {
+                foreach (var scs in Properties.Settings.Default.SpecialCharacters.Split(';'))
+                {
+                    var matches = new Regex(@"(?<Key>\d),(?<Value>.*)").Matches(scs);
+                    foreach (Match sc in matches)
+                    {
+                        Dict.Add(int.Parse(sc.Groups["Key"].Value.Trim()), sc.Groups["Value"].Value.Trim());
+                    }
+                }
+                log.Trace("Загрузили словарь спец. символов");
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine("Неверная структура спец. символов, подробнее см. лог");
+                log.Error(ex, ex.Message);
+            }
+            return Dict;
         }
         public void ExportSpec()
         {
@@ -64,9 +87,15 @@ namespace SpecExport.Classes
         private List<string> GetFileInCatalog()
         {
             List<string> FileNames = new List<string>();
-            var t = Directory.Exists(DrawingsDirectory);
-            var t1 = File.Exists($@"{DrawingsDirectory}\Чертеж — копия (2).cdw");
-            Directory.GetFiles(DrawingsDirectory);
+            if (Directory.Exists($@"{Directory.GetCurrentDirectory()}\{DrawingsDirectory}"))
+            {
+                Console.WriteLine($"Не найдет каталог {DrawingsDirectory} проверьте имя каталога в конфиге");
+                log.Error($"Не найдет каталог {DrawingsDirectory}");
+                return null;
+            }
+            //var t = Directory.Exists(DrawingsDirectory);
+            //var t1 = File.Exists($@"{DrawingsDirectory}\Чертеж — копия (2).cdw");
+            //Directory.GetFiles(DrawingsDirectory);
             //string DrawingsDirectory = Properties.Settings.Default.DrawingsDirectory;
             foreach (var f in Directory.GetFiles($@"{Directory.GetCurrentDirectory()}\{DrawingsDirectory}", "*.cdw"))
             {
@@ -233,7 +262,6 @@ namespace SpecExport.Classes
             //else
             //    kompas.ksError("Спецификация должна быть текущей");
         }
-
         /// <summary>
         /// Заменяет вставки спецсимволов компаса на юникод/ascii
         /// </summary>
@@ -255,10 +283,6 @@ namespace SpecExport.Classes
                                                                                                                                                       //Console.WriteLine(match.Value);
                     }
                 }
-                //else
-                //{
-                //    Console.WriteLine("Совпадений не найдено");
-                //}
             }
             catch (Exception ex)
             {
@@ -348,8 +372,6 @@ namespace SpecExport.Classes
 
             //    if (kompaskompas != null)
             //    {
-            //        string FileName = @"D:\[STUDY]\Универ\Бакалавриат\1 курс\1 семестр\ИиКГ\Учебная сборка\Штуцер.cdw";
-
             //        openFileDialog.Filter = "Чертежи(*.cdw)|*.cdw|Фрагменты(*.frw)|*.frw|Модели(*.m3d)|*.m3d|Сборки(*.a3d)|*.a3d|Спецификации(*.spw)|*.spw";
             //        //if (openFileDialog.ShowDialog(this) == DialogResult.OK)
             //        //{
