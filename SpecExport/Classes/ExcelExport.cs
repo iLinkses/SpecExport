@@ -32,25 +32,11 @@ namespace SpecExport.Classes
         {
             foreach (var spec in Specs)
             {
-                foreach (var detail in spec.Positions)
+                foreach(var ed in spec.GetExcelDetail())
                 {
-                    var ed = new ExcelSpec.ExcelDetail();
-                    ed.FileName = spec.FileName;
-                    ed.DrawingNumber = spec.DrawingNumber;
-                    ed.Section = detail.Section;
-                    ed.Subsection = detail.Subsection;
-                    ed.Format = detail.Format;
-                    ed.Zone = detail.Zone;
-                    ed.Position = detail.Position;
-                    ed.Designation = detail.Designation;
-                    ed.Name = detail.Name;
-                    ed.Quantity = detail.Quantity;
-                    ed.Note = detail.Note;
                     ExcelSpec.Details.Add(ed);
                 }
             }
-            //var sections = ExcelSpec.Details.Select(d => d.Section).Distinct().ToList();
-            //var subsections = ExcelSpec.Details.Select(d => d.Subsection).Distinct().ToList();
         }
 
         public void NewSaveExcel()

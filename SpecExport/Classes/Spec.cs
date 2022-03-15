@@ -42,6 +42,29 @@ namespace SpecExport.Classes
         }
 
         public List<Detail> Positions { get; set; } = new List<Detail>();
+        public List<ExcelSpec.ExcelDetail> GetExcelDetail()
+        {
+            List<ExcelSpec.ExcelDetail> excelDetails = new List<ExcelSpec.ExcelDetail>();
+            var ed = new ExcelSpec.ExcelDetail();
+            foreach (var detail in Positions)
+            {
+                excelDetails.Add(new ExcelSpec.ExcelDetail()
+                {
+                    FileName = FileName,
+                    DrawingNumber = DrawingNumber,
+                    Section = detail.Section,
+                    Subsection = detail.Subsection,
+                    Format = detail.Format,
+                    Zone = detail.Zone,
+                    Position = detail.Position,
+                    Designation = detail.Designation,
+                    Name = detail.Name,
+                    Quantity = detail.Quantity,
+                    Note = detail.Note
+                });
+            }
+            return excelDetails;
+        }
         public class Detail
         {
             /// <summary>
