@@ -32,7 +32,7 @@ namespace SpecExport.Classes
         {
             foreach (var spec in Specs)
             {
-                foreach(var ed in spec.GetExcelDetail())
+                foreach (var ed in spec.GetExcelDetail())
                 {
                     ExcelSpec.Details.Add(ed);
                 }
@@ -60,14 +60,15 @@ namespace SpecExport.Classes
                             ws.Cells[1, 1].Value = "№";
                             ws.Cells[1, 2].Value = "Название";
                             ws.Cells[1, 3].Value = "Общее кол-во";
+                            ws.Cells[1, 1, 1, 3].Style.Font.Bold = true;
                             ws.View.FreezePanes(2, 1);
                             int row = 2, col = 4;
-                            var tsubsec = ExcelSpec.Details.Where(d => d.Section == sec).Select(d => d.Subsection).Distinct();
                             foreach (var subsec in ExcelSpec.Details.Where(d => d.Section == sec).Select(d => d.Subsection).Distinct())
                             {
                                 ws.Cells[row, 1].Value = subsec;
+                                ws.Cells[row, 1].Style.Font.Italic = true;
                                 row++;
-                                var tdb = ExcelSpec.Details.Where(d => d.Section == sec && d.Subsection == subsec).Select(d => d.DrawingNumber).Distinct().OrderBy(d => d);
+                                int index = 1;
                                 foreach (var dn in ExcelSpec.Details.Where(d => d.Section == sec && d.Subsection == subsec).Select(d => d.DrawingNumber).Distinct().OrderBy(d => d))
                                 {
                                     if (ws.Cells["D1"].Value == null)
@@ -90,9 +91,11 @@ namespace SpecExport.Classes
                                     foreach (var detail in ExcelSpec.Details.Where(d => d.Section == sec && d.Subsection == subsec && d.DrawingNumber == dn).OrderBy(d => d.Name))
                                     {
                                         int row_ = row;
-                                        string existRow = ExistName(ws.Cells[$"B2:B{ws.Dimension.End.Row}"],detail.Name);
+                                        string existRow = ExistName(ws.Cells[$"B2:B{ws.Dimension.End.Row}"], detail.Name);
                                         if (string.IsNullOrEmpty(existRow))
                                         {
+                                            ws.SetValue(row, 1, index);
+                                            index++;
                                             ws.SetValue(row, 2, detail.Name);
                                             row++;
                                         }
@@ -104,7 +107,6 @@ namespace SpecExport.Classes
                                     }
                                     col++;
                                 }
-                                
                             }
                             for (int r = 2; r <= ws.Dimension.End.Row; r++)
                             {
@@ -118,8 +120,14 @@ namespace SpecExport.Classes
                                     ws.Cells[r, 1, r, 3].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
                                 }
                             }
+                            ws.Cells[1, ws.Dimension.Start.Column, 1, ws.Dimension.End.Column].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+                            ws.Cells[1, ws.Dimension.Start.Column, 1, ws.Dimension.End.Column].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                            ws.Cells.Style.Font.Name = "Consolas";
+                            ws.Cells.Style.Font.Size = 12;
                             ws.Cells.AutoFitColumns();
-                            AddThinBorder(ws,ws.Dimension.Start.Row, ws.Dimension.Start.Column, ws.Dimension.End.Row, ws.Dimension.End.Column);
+                            ws.Column(2).Width = 44;
+                            ws.Column(2).Style.WrapText = true; 
+                            AddThinBorder(ws, ws.Dimension.Start.Row, ws.Dimension.Start.Column, ws.Dimension.End.Row, ws.Dimension.End.Column);
 
                             string[] columns = new string[ws.Dimension.End.Column];
                             for (int с = 1; с <= ws.Dimension.End.Column; с++)
